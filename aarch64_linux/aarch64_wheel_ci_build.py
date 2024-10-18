@@ -7,6 +7,9 @@ from subprocess import check_output, check_call
 from pygit2 import Repository
 from typing import List
 
+REPO_PATH = "/capstor/scratch/cscs/ctianche/playground"
+BUILD_PATH = "/capstor/scratch/cscs/ctianche/playground/torch-builder"
+ARTIFACTS_PATH = "/capstor/scratch/cscs/ctianche/playground/torch-builder/build"
 
 def list_dir(path: str) -> List[str]:
     """'
@@ -31,8 +34,10 @@ def build_ArmComputeLibrary() -> None:
         "fixed_format_kernels=1",
         "build=native",
     ]
-    acl_install_dir = "/acl"
-    acl_checkout_dir = "ComputeLibrary"
+    acl_install_dir = f'{BUILD_PATH}/acl'
+    # remove if exists
+    shutil.rmtree(acl_install_dir, ignore_errors=True)
+    acl_checkout_dir = f'{BUILD_PATH}/ComputeLibrary'
     os.makedirs(acl_install_dir)
     check_call(
         [
@@ -44,7 +49,8 @@ def build_ArmComputeLibrary() -> None:
             "--depth",
             "1",
             "--shallow-submodules",
-        ]
+        ],
+        cwd=BUILD_PATH,
     )
 
     # patch Winograd conv initialzation to avoid SIGILL crash on Cortex A72
@@ -70,8 +76,8 @@ def update_wheel(wheel_path) -> None:
     os.mkdir(f"{folder}/tmp")
     os.system(f"unzip {wheel_path} -d {folder}/tmp")
     libs_to_copy = [
-        "/usr/local/cuda/extras/CUPTI/lib64/libcupti.so.12",
-        "/usr/local/cuda/lib64/libcudnn.so.9",
+        "/usr/local/cuda/lib64/libcupti.so.12",
+        "/usr/lib/aarch64-linux-gnu/libcudnn.so.9",
         "/usr/local/cuda/lib64/libcublas.so.12",
         "/usr/local/cuda/lib64/libcublasLt.so.12",
         "/usr/local/cuda/lib64/libcudart.so.12",
@@ -83,18 +89,18 @@ def update_wheel(wheel_path) -> None:
         "/usr/local/cuda/lib64/libnvToolsExt.so.1",
         "/usr/local/cuda/lib64/libnvJitLink.so.12",
         "/usr/local/cuda/lib64/libnvrtc.so.12",
-        "/usr/local/cuda/lib64/libnvrtc-builtins.so.12.4",
-        "/usr/local/cuda/lib64/libcudnn_adv.so.9",
-        "/usr/local/cuda/lib64/libcudnn_cnn.so.9",
-        "/usr/local/cuda/lib64/libcudnn_graph.so.9",
-        "/usr/local/cuda/lib64/libcudnn_ops.so.9",
-        "/usr/local/cuda/lib64/libcudnn_engines_runtime_compiled.so.9",
-        "/usr/local/cuda/lib64/libcudnn_engines_precompiled.so.9",
-        "/usr/local/cuda/lib64/libcudnn_heuristic.so.9",
-        "/opt/conda/envs/aarch64_env/lib/libgomp.so.1",
-        "/usr/lib64/libgfortran.so.5",
-        "/acl/build/libarm_compute.so",
-        "/acl/build/libarm_compute_graph.so",
+        "/usr/local/cuda/lib64/libnvrtc-builtins.so.12.6",
+        "/usr/lib/aarch64-linux-gnu/libcudnn_adv.so.9",
+        "/usr/lib/aarch64-linux-gnu/libcudnn_cnn.so.9",
+        "/usr/lib/aarch64-linux-gnu/libcudnn_graph.so.9",
+        "/usr/lib/aarch64-linux-gnu/libcudnn_ops.so.9",
+        "/usr/lib/aarch64-linux-gnu/libcudnn_engines_runtime_compiled.so.9",
+        "/usr/lib/aarch64-linux-gnu/libcudnn_engines_precompiled.so.9",
+        "/usr/lib/aarch64-linux-gnu/libcudnn_heuristic.so.9",
+        "/opt/conda/envs/aarch64_torch_env/lib/libgomp.so.1",
+        "/usr/lib/aarch64-linux-gnu/libgfortran.so.5",
+        f'{BUILD_PATH}/acl/build/libarm_compute.so',
+        f'{BUILD_PATH}/acl/build/libarm_compute_graph.so',
     ]
     if enable_cuda:
         libs_to_copy += [
@@ -105,7 +111,7 @@ def update_wheel(wheel_path) -> None:
         ]
     else:
         libs_to_copy += [
-            "/opt/OpenBLAS/lib/libopenblas.so.0",
+            "/usr/local/lib/libopenblas.so.0",
         ]
     # Copy libraries to unzipped_folder/a/lib
     for lib_path in libs_to_copy:
@@ -129,24 +135,24 @@ def complete_wheel(folder: str) -> str:
     """
     Complete wheel build and put in artifact location
     """
-    wheel_name = list_dir(f"/{folder}/dist")[0]
+    wheel_name = list_dir(f"{folder}/dist")[0]
 
     if "pytorch" in folder and not enable_cuda:
         print("Repairing Wheel with AuditWheel")
         check_call(["auditwheel", "repair", f"dist/{wheel_name}"], cwd=folder)
-        repaired_wheel_name = list_dir(f"/{folder}/wheelhouse")[0]
+        repaired_wheel_name = list_dir(f"{folder}/wheelhouse")[0]
 
         print(f"Moving {repaired_wheel_name} wheel to /{folder}/dist")
         os.rename(
-            f"/{folder}/wheelhouse/{repaired_wheel_name}",
-            f"/{folder}/dist/{repaired_wheel_name}",
+            f"{folder}/wheelhouse/{repaired_wheel_name}",
+            f"{folder}/dist/{repaired_wheel_name}",
         )
     else:
         repaired_wheel_name = wheel_name
 
     print(f"Copying {repaired_wheel_name} to artifacts")
     shutil.copy2(
-        f"/{folder}/dist/{repaired_wheel_name}", f"/artifacts/{repaired_wheel_name}"
+        f"{folder}/dist/{repaired_wheel_name}", f"{ARTIFACTS_PATH}/artifacts/{repaired_wheel_name}"
     )
 
     return repaired_wheel_name
@@ -174,14 +180,15 @@ if __name__ == "__main__":
     args = parse_arguments()
     enable_mkldnn = args.enable_mkldnn
     enable_cuda = args.enable_cuda
-    repo = Repository("/pytorch")
+    repo = Repository(f"{REPO_PATH}/pytorch")
     branch = repo.head.name
     if branch == "HEAD":
         branch = "master"
 
     print("Building PyTorch wheel")
     build_vars = "MAX_JOBS=5 CMAKE_SHARED_LINKER_FLAGS=-Wl,-z,max-page-size=0x10000 "
-    os.system("cd /pytorch; python setup.py clean")
+    # clean will remove the build folder
+    # os.system(f"cd {REPO_PATH}/pytorch; python setup.py clean")
 
     override_package_version = os.getenv("OVERRIDE_PACKAGE_VERSION")
     if override_package_version is not None:
@@ -191,12 +198,12 @@ if __name__ == "__main__":
         )
     elif branch in ["nightly", "master"]:
         build_date = (
-            check_output(["git", "log", "--pretty=format:%cs", "-1"], cwd="/pytorch")
+            check_output(["git", "log", "--pretty=format:%cs", "-1"], cwd=f"{REPO_PATH}/pytorch")
             .decode()
             .replace("-", "")
         )
         version = (
-            check_output(["cat", "version.txt"], cwd="/pytorch").decode().strip()[:-2]
+            check_output(["cat", "version.txt"], cwd=f"{REPO_PATH}/pytorch").decode().strip()[:-2]
         )
         if enable_cuda:
             desired_cuda = os.getenv("DESIRED_CUDA")
@@ -209,14 +216,14 @@ if __name__ == "__main__":
         build_vars += f"BUILD_TEST=0 PYTORCH_BUILD_VERSION={branch[1:branch.find('-')]} PYTORCH_BUILD_NUMBER=1 "
 
     if enable_mkldnn:
-        build_ArmComputeLibrary()
+        # build_ArmComputeLibrary()
         print("build pytorch with mkldnn+acl backend")
         build_vars += (
             "USE_MKLDNN=ON USE_MKLDNN_ACL=ON "
-            "ACL_ROOT_DIR=/acl "
-            "LD_LIBRARY_PATH=/pytorch/build/lib:/acl/build:$LD_LIBRARY_PATH "
-            "ACL_INCLUDE_DIR=/acl/build "
-            "ACL_LIBRARY=/acl/build "
+            f"ACL_ROOT_DIR={BUILD_PATH}/acl "
+            f"LD_LIBRARY_PATH={REPO_PATH}/pytorch/build/lib:{BUILD_PATH}/acl/build:$LD_LIBRARY_PATH "
+            f"ACL_INCLUDE_DIR={BUILD_PATH}/acl/build "
+            f"ACL_LIBRARY={BUILD_PATH}/acl/build "
         )
         if enable_cuda:
             build_vars += "BLAS=NVPL "
@@ -225,11 +232,11 @@ if __name__ == "__main__":
     else:
         print("build pytorch without mkldnn backend")
 
-    os.system(f"cd /pytorch; {build_vars} python3 setup.py bdist_wheel")
+    os.system(f"cd {REPO_PATH}/pytorch; {build_vars} python3 setup.py bdist_wheel")
     if enable_cuda:
         print("Updating Cuda Dependency")
-        filename = os.listdir("/pytorch/dist/")
-        wheel_path = f"/pytorch/dist/{filename[0]}"
+        filename = os.listdir(f"{REPO_PATH}/pytorch/dist/")
+        wheel_path = f"{REPO_PATH}/pytorch/dist/{filename[0]}"
         update_wheel(wheel_path)
-    pytorch_wheel_name = complete_wheel("/pytorch/")
+    pytorch_wheel_name = complete_wheel(f"{REPO_PATH}/pytorch/")
     print(f"Build Complete. Created {pytorch_wheel_name}..")
