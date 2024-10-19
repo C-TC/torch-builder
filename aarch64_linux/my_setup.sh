@@ -8,22 +8,14 @@
 #SBATCH --reservation=sai-a06
 
 CONDA_ENV_NAME=aarch64_torch_env
-# conda init
-
-
-# print python path
-# echo "python path: $(which python)"
-
-PATH=/users/ctianche/miniconda3/bin:$PATH
-LD_LIBRARY_PATH=/users/ctianche/miniconda3/envs/${CONDA_ENV_NAME}/lib/:/users/ctianche/miniconda3/lib:$LD_LIBRARY_PATH
-DESIRED_PYTHON=3.10
-DESIRED_CUDA=12.6
-GPU_ARCH_VERSION=12.6
-
-
-USE_PRIORITIZED_TEXT_FOR_LD=1 
 
 srun --environment=megatron  numactl --membind=0-3  bash -c "\
+    export USE_PRIORITIZED_TEXT_FOR_LD=1 && \
+    export PATH=/users/ctianche/miniconda3/bin:\$PATH && \
+    export LD_LIBRARY_PATH=/users/ctianche/miniconda3/envs/${CONDA_ENV_NAME}/lib/:/users/ctianche/miniconda3/lib:\$LD_LIBRARY_PATH && \
+    export DESIRED_PYTHON=3.10 && \
+    export DESIRED_CUDA=12.6 && \
+    export GPU_ARCH_VERSION=12.6 && \
     source /users/ctianche/miniconda3/etc/profile.d/conda.sh && \
     conda activate ${CONDA_ENV_NAME} && \
     echo \"python path: \$(which python)\" && \

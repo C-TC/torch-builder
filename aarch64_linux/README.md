@@ -21,7 +21,7 @@ This app allows a person to build using AWS EC3 resources and requires AWS-CLI a
 
 # Compiling torch on ALPS
 
-1. create `aarch64_torch_env` conda env, install packages listed in `aarch64_ci_setup.sh`
+1. create `aarch64_torch_env` conda env, install packages listed in `aarch64_ci_setup.sh`, also install zip.
 2. in cuda devel cudnn ngc container (or pytorch ngc container), activate env, run `my_setup.sh` manually (copy paste commands, because sometimes conda falls back to base env for unknown reason). 
 
 

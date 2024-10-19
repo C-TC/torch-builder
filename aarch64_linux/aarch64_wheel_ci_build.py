@@ -97,7 +97,7 @@ def update_wheel(wheel_path) -> None:
         "/usr/lib/aarch64-linux-gnu/libcudnn_engines_runtime_compiled.so.9",
         "/usr/lib/aarch64-linux-gnu/libcudnn_engines_precompiled.so.9",
         "/usr/lib/aarch64-linux-gnu/libcudnn_heuristic.so.9",
-        "/opt/conda/envs/aarch64_torch_env/lib/libgomp.so.1",
+        "/users/ctianche/miniconda3/envs/aarch64_torch_env/lib/libgomp.so.1",
         "/usr/lib/aarch64-linux-gnu/libgfortran.so.5",
         f'{BUILD_PATH}/acl/build/libarm_compute.so',
         f'{BUILD_PATH}/acl/build/libarm_compute_graph.so',
@@ -121,6 +121,8 @@ def update_wheel(wheel_path) -> None:
             f"cd {folder}/tmp/torch/lib/; "
             f"patchelf --set-rpath '$ORIGIN' --force-rpath {folder}/tmp/torch/lib/{lib_name}"
         )
+    # remove the cuda_wheel folder if exists
+    shutil.rmtree(f"{folder}/cuda_wheel", ignore_errors=True)
     os.mkdir(f"{folder}/cuda_wheel")
     os.system(f"cd {folder}/tmp/; zip -r {folder}/cuda_wheel/{wheelname} *")
     shutil.move(
@@ -150,10 +152,10 @@ def complete_wheel(folder: str) -> str:
     else:
         repaired_wheel_name = wheel_name
 
-    print(f"Copying {repaired_wheel_name} to artifacts")
-    shutil.copy2(
-        f"{folder}/dist/{repaired_wheel_name}", f"{ARTIFACTS_PATH}/artifacts/{repaired_wheel_name}"
-    )
+    # print(f"Copying {repaired_wheel_name} to artifacts")
+    # shutil.copy2(
+    #     f"{folder}/dist/{repaired_wheel_name}", f"{ARTIFACTS_PATH}/artifacts/{repaired_wheel_name}"
+    # )
 
     return repaired_wheel_name
 
@@ -235,6 +237,8 @@ if __name__ == "__main__":
     os.system(f"cd {REPO_PATH}/pytorch; {build_vars} python3 setup.py bdist_wheel")
     if enable_cuda:
         print("Updating Cuda Dependency")
+        # if exist, remove the tmp folder
+        shutil.rmtree(f"{REPO_PATH}/pytorch/dist/tmp", ignore_errors=True)
         filename = os.listdir(f"{REPO_PATH}/pytorch/dist/")
         wheel_path = f"{REPO_PATH}/pytorch/dist/{filename[0]}"
         update_wheel(wheel_path)
