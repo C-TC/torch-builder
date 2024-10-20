@@ -172,6 +172,7 @@ def parse_arguments():
     parser.add_argument("--test-only", type=str)
     parser.add_argument("--enable-mkldnn", action="store_true")
     parser.add_argument("--enable-cuda", action="store_true")
+    parser.add_argument("--build-wheel", action="store_true")
     return parser.parse_args()
 
 
@@ -234,13 +235,17 @@ if __name__ == "__main__":
     else:
         print("build pytorch without mkldnn backend")
 
-    os.system(f"cd {REPO_PATH}/pytorch; {build_vars} python3 setup.py bdist_wheel")
-    if enable_cuda:
-        print("Updating Cuda Dependency")
-        # if exist, remove the tmp folder
-        shutil.rmtree(f"{REPO_PATH}/pytorch/dist/tmp", ignore_errors=True)
-        filename = os.listdir(f"{REPO_PATH}/pytorch/dist/")
-        wheel_path = f"{REPO_PATH}/pytorch/dist/{filename[0]}"
-        update_wheel(wheel_path)
-    pytorch_wheel_name = complete_wheel(f"{REPO_PATH}/pytorch/")
-    print(f"Build Complete. Created {pytorch_wheel_name}..")
+    if args.build_wheel:
+        os.system(f"cd {REPO_PATH}/pytorch; {build_vars} python3 setup.py bdist_wheel")
+        if enable_cuda:
+            print("Updating Cuda Dependency")
+            # if exist, remove the tmp folder
+            shutil.rmtree(f"{REPO_PATH}/pytorch/dist/tmp", ignore_errors=True)
+            filename = os.listdir(f"{REPO_PATH}/pytorch/dist/")
+            wheel_path = f"{REPO_PATH}/pytorch/dist/{filename[0]}"
+            update_wheel(wheel_path)
+        pytorch_wheel_name = complete_wheel(f"{REPO_PATH}/pytorch/")
+        print(f"Build Complete. Created {pytorch_wheel_name}..")
+    else:
+        print("Build PyTorch in Develop Mode")
+        os.system(f"cd {REPO_PATH}/pytorch; {build_vars} python3 setup.py develop")

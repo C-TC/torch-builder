@@ -27,3 +27,5 @@ This app allows a person to build using AWS EC3 resources and requires AWS-CLI a
 
 ## Notice: 
 1. uncomment `os.system(f"cd {REPO_PATH}/pytorch; python setup.py clean")` and/or `build_ArmComputeLibrary()` if necessary
+2. add -`-build-wheel` to build wheel instead of develop mode, the wheel is generated in `pytorch/dist/`
+3. in develop mode, simply add pytorch folder to `PYTHONPATH` and pytorch lib to `LD_LIBRARY_PATH`

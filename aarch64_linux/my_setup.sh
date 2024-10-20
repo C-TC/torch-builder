@@ -3,11 +3,12 @@
 #SBATCH --nodes=1                   # number of nodes
 #SBATCH --ntasks-per-node=1        # Do not change
 #SBATCH --gpus-per-node=4          # number of gpus per node
-#SBATCH --time=6:00:00            # total run time limit (HH:MM:SS)
-#SBATCH -A a06
-#SBATCH --reservation=sai-a06
+#SBATCH --time=0:30:00            # total run time limit (HH:MM:SS)
+#SBATCH -p debug
 
 CONDA_ENV_NAME=aarch64_torch_env
+
+# add --build-wheel to build wheel instead of develop mode
 
 srun --environment=megatron  numactl --membind=0-3  bash -c "\
     export USE_PRIORITIZED_TEXT_FOR_LD=1 && \
