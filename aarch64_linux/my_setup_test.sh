@@ -21,4 +21,7 @@ srun --environment=/capstor/users/cscs/ctianche/.edf/megatron.toml  numactl --me
     source /capstor/scratch/cscs/ctianche/clariden/miniconda3/etc/profile.d/conda.sh && \
     conda activate ${CONDA_ENV_NAME} && \
     echo \"python path: \$(which python)\" && \
-    python /capstor/scratch/cscs/ctianche/playground/torch-builder/aarch64_linux/aarch64_wheel_ci_build.py --enable-mkldnn --enable-cuda"
+    cd /capstor/scratch/cscs/ctianche/playground/pytorch && \
+    export CMAKE_PREFIX_PATH="\${CONDA_PREFIX:-'\$(dirname \$(which conda))/../'}:\${CMAKE_PREFIX_PATH}" && \
+    echo \"CMAKE_PREFIX_PATH: \$CMAKE_PREFIX_PATH\" && \
+    python setup.py develop"
