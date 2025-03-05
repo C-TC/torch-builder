@@ -11,7 +11,7 @@ CONDA_ENV_NAME=aarch64_torch_env
 
 # add --build-wheel to build wheel instead of develop mode
 
-srun --environment=/capstor/users/cscs/ctianche/.edf/megatron.toml  numactl --membind=0-3  bash -c "\
+srun --environment=megatron  numactl --membind=0-3  bash -c "\
     export USE_PRIORITIZED_TEXT_FOR_LD=1 && \
     export PATH=/capstor/scratch/cscs/ctianche/clariden/miniconda3/bin:\$PATH && \
     export LD_LIBRARY_PATH=/capstor/scratch/cscs/ctianche/clariden/miniconda3/envs/${CONDA_ENV_NAME}/lib/:/capstor/scratch/cscs/ctianche/clariden/miniconda3/lib:\$LD_LIBRARY_PATH && \
@@ -21,7 +21,7 @@ srun --environment=/capstor/users/cscs/ctianche/.edf/megatron.toml  numactl --me
     source /capstor/scratch/cscs/ctianche/clariden/miniconda3/etc/profile.d/conda.sh && \
     conda activate ${CONDA_ENV_NAME} && \
     echo \"python path: \$(which python)\" && \
-    cd /capstor/scratch/cscs/ctianche/playground/pytorch && \
+    cd /capstor/scratch/cscs/ctianche/projects/crossdc/pytorch && \
     export CMAKE_PREFIX_PATH="\${CONDA_PREFIX:-'\$(dirname \$(which conda))/../'}:\${CMAKE_PREFIX_PATH}" && \
     echo \"CMAKE_PREFIX_PATH: \$CMAKE_PREFIX_PATH\" && \
     python setup.py develop"

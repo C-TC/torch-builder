@@ -47,13 +47,18 @@ def build_ArmComputeLibrary() -> None:
             "clone",
             "https://github.com/ARM-software/ComputeLibrary.git",
             "-b",
-            "v24.09",
+            "v24.04",
             "--depth",
             "1",
             "--shallow-submodules",
         ],
         cwd=BUILD_PATH,
     )
+
+    # patch Winograd conv initialzation to avoid SIGILL crash on Cortex A72
+    print("Applying ACL patch to fix SIGILL crash")
+    with open(os.path.join(os.path.dirname(__file__), "0001-Delay-Winograd-transform-initialization.patch")) as f:
+        check_call(["patch", "-p1"], stdin=f, cwd=acl_checkout_dir)
 
     check_call(
         ["scons", "Werror=1", "-j8", f"build_dir=/{acl_install_dir}/build"]
